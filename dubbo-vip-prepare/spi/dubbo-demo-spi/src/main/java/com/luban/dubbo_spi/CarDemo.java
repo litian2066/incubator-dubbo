@@ -1,10 +1,10 @@
 package com.luban.dubbo_spi;
 
 import com.luban.dubbo_spi.api.Car;
-import com.luban.dubbo_spi.api.Driver;
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.extension.ExtensionLoader;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,17 +16,13 @@ import java.util.Map;
  * 讲师：周瑜老师
  * *************学海无涯苦作舟***************
  */
-public class DriverDemo {
+public class CarDemo {
 
     public static void main(String[] args) {
-        ExtensionLoader<Driver> extensionLoader =
-                ExtensionLoader.getExtensionLoader(Driver.class);
+        // 每个接口对应一个ExtensionLoader
+        ExtensionLoader<Car> extensionLoader = ExtensionLoader.getExtensionLoader(Car.class);
 
-        Driver driver = extensionLoader.getExtension("trucker");
-        Map<String, String> map = new HashMap<>();
-        map.put("carType", "red");
-        URL url = new URL("", "", 0, map);
-        driver.driveCar(url);
-
+        Car redCar = extensionLoader.getExtension("red");
+        redCar.getColor();
     }
 }

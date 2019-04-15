@@ -16,12 +16,16 @@ public class Trucker implements Driver {
 
     private Car car;
 
-    public void setCar(Car car) {
+//    public void setCar(Car car) {
+//        this.car = car;
+//    }
+
+    public void setSpringCar(Car car) {
         this.car = car;
     }
 
     @Override
     public void driveCar(URL url) {
-        car.getColor(url);
+        car.getColor();
     }
 }

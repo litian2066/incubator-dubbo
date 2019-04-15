@@ -99,6 +99,8 @@ public class ExtensionLoader<T> {
 
     private ExtensionLoader(Class<?> type) {
         this.type = type;
+        // ExtensionFactory表示扩展机制的工厂，在Dubbo里面有SPI扩展机制，也有Spring扩展机制
+        // 对于一个接口，比如Car接口，有两种实现类，一种就是我们自定义的实现类，比如RedCar，还有一种就是代理类，对于代理类，可以由我们自己实现，也可以让Dubbo帮我们实现，而代理类主要就是依赖注入时使用
         objectFactory = (type == ExtensionFactory.class ? null : ExtensionLoader.getExtensionLoader(ExtensionFactory.class).getAdaptiveExtension());
     }
 
@@ -119,6 +121,9 @@ public class ExtensionLoader<T> {
                     ") is not an extension, because it is NOT annotated with @" + SPI.class.getSimpleName() + "!");
         }
 
+        // 缓存机制
+        // value = map.get(key);
+        // if(value == null) {map.put(key, new Object()), value = map.get(key)}
         ExtensionLoader<T> loader = (ExtensionLoader<T>) EXTENSION_LOADERS.get(type);
         if (loader == null) {
             EXTENSION_LOADERS.putIfAbsent(type, new ExtensionLoader<T>(type));
@@ -329,6 +334,7 @@ public class ExtensionLoader<T> {
     /**
      * Find the extension with the given name. If the specified name is not found, then {@link IllegalStateException}
      * will be thrown.
+     * 返回name所对应的实现类的实例，并缓存
      */
     @SuppressWarnings("unchecked")
     public T getExtension(String name) {
@@ -517,6 +523,8 @@ public class ExtensionLoader<T> {
     }
 
     @SuppressWarnings("unchecked")
+    // 返回name所对应的实现类的实例
+    // 包含依赖注入和AOP
     private T createExtension(String name) {
         Class<?> clazz = getExtensionClasses().get(name);
         if (clazz == null) {

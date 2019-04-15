@@ -1,8 +1,7 @@
-package com.luban.dubbo_spi.api;
+package com.luban.dubbo_spi.impl;
 
+import com.luban.dubbo_spi.api.Car;
 import org.apache.dubbo.common.URL;
-import org.apache.dubbo.common.extension.Adaptive;
-import org.apache.dubbo.common.extension.SPI;
 
 /**
  * *************书山有路勤为径***************
@@ -12,9 +11,10 @@ import org.apache.dubbo.common.extension.SPI;
  * 讲师：周瑜老师
  * *************学海无涯苦作舟***************
  */
-@SPI
-public interface Car {
+public class SpringCar implements Car {
 
-    @Adaptive("carType")
-    public void getColor(URL url);
+    @Override
+    public void getColor() {
+        System.out.println("spring");
+    }
 }
