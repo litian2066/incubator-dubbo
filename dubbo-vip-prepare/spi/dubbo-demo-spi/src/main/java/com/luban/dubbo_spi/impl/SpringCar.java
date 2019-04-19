@@ -14,7 +14,7 @@ import org.apache.dubbo.common.URL;
 public class SpringCar implements Car {
 
     @Override
-    public void getColor() {
-        System.out.println("spring");
+    public void getColor(URL url) {
+        System.out.println("spring1111");
     }
 }

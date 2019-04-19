@@ -28,12 +28,13 @@ public class DriverDemo {
 
         ExtensionLoader<Driver> extensionLoader =
                 ExtensionLoader.getExtensionLoader(Driver.class);
-
         Driver driver = extensionLoader.getExtension("trucker");
-//        Map<String, String> map = new HashMap<>();
-//        map.put("carType", "red");
-//        URL url = new URL("", "", 0, map);
-        driver.driveCar(null);
+
+
+        Map<String, String> map = new HashMap<>();
+        map.put("carType", "black");
+        URL url = new URL("", "", 0, map);
+        driver.driveCar(url);
 
 
 //        try {

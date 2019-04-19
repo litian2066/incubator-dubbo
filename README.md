@@ -120,7 +120,7 @@ public class Application {
 
 ```bash
 # mvn clean package
-# mvn -Djava.net.preferIPv4Stack=true -Dexec.mainClass=org.apache.dubbo.demo.provider.Application exec:java
+# mvn -Djava.net.preferIPv4Stack=true -Dexec.mainClass=org.apache.dubbo.demo.provider.Provider exec:java
 ```
 
 ### Call remote service in consumer
@@ -149,7 +149,7 @@ public class Application {
 
 ```bash
 # mvn clean package
-# mvn -Djava.net.preferIPv4Stack=true -Dexec.mainClass=org.apache.dubbo.demo.consumer.Application exec:java
+# mvn -Djava.net.preferIPv4Stack=true -Dexec.mainClass=org.apache.dubbo.demo.consumer.Consumer exec:java
 ```
 
 The consumer will print out `Hello world` on the screen.

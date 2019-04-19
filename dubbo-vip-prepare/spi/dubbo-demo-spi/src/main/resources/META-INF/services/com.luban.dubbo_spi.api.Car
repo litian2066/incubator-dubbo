@@ -1,3 +1,4 @@
 red = com.luban.dubbo_spi.impl.RedCar
 black = com.luban.dubbo_spi.impl.BlackCar
-com.luban.dubbo_spi.impl.CarWrapper
+
+

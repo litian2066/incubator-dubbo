@@ -409,11 +409,14 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void doExportUrls() {
+        // 加载所有配置的注册中心
         List<URL> registryURLs = loadRegistries(true);
+
         for (ProtocolConfig protocolConfig : protocols) {
             String pathKey = URL.buildKey(getContextPath(protocolConfig).map(p -> p + "/" + path).orElse(path), group, version);
             ProviderModel providerModel = new ProviderModel(pathKey, ref, interfaceClass);
             ApplicationModel.initProviderModel(pathKey, providerModel);
+            // 对每个协议每个注册中心导出服务
             doExportUrlsFor1Protocol(protocolConfig, registryURLs);
         }
     }

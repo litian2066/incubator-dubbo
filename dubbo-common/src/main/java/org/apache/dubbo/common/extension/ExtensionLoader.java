@@ -350,6 +350,7 @@ public class ExtensionLoader<T> {
             synchronized (holder) {
                 instance = holder.get();
                 if (instance == null) {
+                    // 创建实例
                     instance = createExtension(name);
                     holder.set(instance);
                 }
@@ -526,6 +527,7 @@ public class ExtensionLoader<T> {
     // 返回name所对应的实现类的实例
     // 包含依赖注入和AOP
     private T createExtension(String name) {
+        // 解析文件，加载文件里面对应的key和实现类的关系map
         Class<?> clazz = getExtensionClasses().get(name);
         if (clazz == null) {
             throw findException(name);
@@ -536,7 +538,9 @@ public class ExtensionLoader<T> {
                 EXTENSION_INSTANCES.putIfAbsent(clazz, clazz.newInstance());
                 instance = (T) EXTENSION_INSTANCES.get(clazz);
             }
+            // 依赖注入
             injectExtension(instance);
+            // AOP
             Set<Class<?>> wrapperClasses = cachedWrapperClasses;
             if (CollectionUtils.isNotEmpty(wrapperClasses)) {
                 for (Class<?> wrapperClass : wrapperClasses) {
@@ -561,7 +565,7 @@ public class ExtensionLoader<T> {
                         if (method.getAnnotation(DisableInject.class) != null) {
                             continue;
                         }
-                        Class<?> pt = method.getParameterTypes()[0];
+                        Class<?> pt = method.getParameterTypes()[0];  // Car
                         if (ReflectUtils.isPrimitives(pt)) {
                             continue;
                         }
@@ -857,6 +861,7 @@ public class ExtensionLoader<T> {
         if (cachedAdaptiveClass != null) {
             return cachedAdaptiveClass;
         }
+        // 如果没有手动实现接口的代理类，那么Dubbo就会自动给你实现一个
         return cachedAdaptiveClass = createAdaptiveExtensionClass();
     }
 

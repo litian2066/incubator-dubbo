@@ -26,6 +26,6 @@ public class Trucker implements Driver {
 
     @Override
     public void driveCar(URL url) {
-        car.getColor();
+        car.getColor(url);
     }
 }

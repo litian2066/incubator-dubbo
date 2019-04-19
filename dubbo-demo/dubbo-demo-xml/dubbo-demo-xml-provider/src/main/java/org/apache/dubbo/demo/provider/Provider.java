@@ -14,22 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.dubbo.demo.consumer;
-
-import org.apache.dubbo.demo.DemoService;
+package org.apache.dubbo.demo.provider;
 
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
-public class Application {
+public class Provider {
     /**
      * In order to make sure multicast registry works, need to specify '-Djava.net.preferIPv4Stack=true' before
      * launch the application
      */
-    public static void main(String[] args) {
-        ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("spring/dubbo-consumer.xml");
+    public static void main(String[] args) throws Exception {
+        ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("spring/dubbo-provider.xml");
         context.start();
-        DemoService demoService = context.getBean("demoService", DemoService.class);
-        String hello = demoService.sayHello("world");
-        System.out.println("result: " + hello);
+        System.in.read();
     }
 }

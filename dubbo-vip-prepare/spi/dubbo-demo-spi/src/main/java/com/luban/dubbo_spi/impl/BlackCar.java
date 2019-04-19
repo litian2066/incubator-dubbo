@@ -3,6 +3,7 @@ package com.luban.dubbo_spi.impl;
 import com.luban.dubbo_spi.api.Car;
 import org.apache.dubbo.common.Extension;
 import org.apache.dubbo.common.URL;
+import org.apache.dubbo.common.extension.Adaptive;
 
 /**
  * *************书山有路勤为径***************
