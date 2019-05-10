@@ -146,8 +146,6 @@
         <module>dubbo-metadata-report</module>
         <module>dubbo-configcenter</module>
         <module>dubbo-dependencies</module>
-        <module>dubbo-vip</module>
-        <module>dubbo-vip</module>
     </modules>
 
     <dependencyManagement>
