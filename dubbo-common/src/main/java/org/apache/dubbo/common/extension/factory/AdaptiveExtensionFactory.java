@@ -43,7 +43,9 @@ public class AdaptiveExtensionFactory implements ExtensionFactory {
 
     @Override
     public <T> T getExtension(Class<T> type, String name) {
+        // factories在上面的构造方法生成了，里面就只有一个SPIExtensionFactory
         for (ExtensionFactory factory : factories) {
+            // 把type的代理类返回
             T extension = factory.getExtension(type, name);
             if (extension != null) {
                 return extension;

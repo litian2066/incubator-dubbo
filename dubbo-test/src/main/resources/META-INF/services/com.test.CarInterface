@@ -1,0 +1,5 @@
+black = com.test.BlackCar
+red = com.test.RedCar
+benz = com.test.BenzCar
+# com.test.CarWrapper
+# com.test.CarWrapper2

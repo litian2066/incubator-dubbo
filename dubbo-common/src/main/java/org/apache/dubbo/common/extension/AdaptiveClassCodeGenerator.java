@@ -90,7 +90,7 @@ public class AdaptiveClassCodeGenerator {
         }
 
         StringBuilder code = new StringBuilder();
-        code.append(generatePackageInfo());
+        code.append(generatePackageInfo()); // 生成packageInfo
         code.append(generateImports());
         code.append(generateClassDeclaration());
         
