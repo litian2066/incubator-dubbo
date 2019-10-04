@@ -83,6 +83,7 @@ public class ConfigCenterBean extends ConfigCenterConfig implements Initializing
     @Override
     public void setEnvironment(Environment environment) {
         if (includeSpringEnv) {
+            // 获取外部配置信息，放入map
             Map<String, String> externalProperties = getConfigurations(getConfigFile(), environment);
             Map<String, String> appExternalProperties = getConfigurations(StringUtils.isNotEmpty(getAppConfigFile()) ? getAppConfigFile() : (StringUtils.isEmpty(getAppName()) ? ("application." + getConfigFile()) : (getAppName() + "." + getConfigFile())), environment);
             org.apache.dubbo.common.config.Environment.getInstance().setExternalConfigMap(externalProperties);

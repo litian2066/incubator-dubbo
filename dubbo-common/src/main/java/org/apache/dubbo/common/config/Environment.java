@@ -58,6 +58,7 @@ public class Environment {
         return systemConfigs.computeIfAbsent(toKey(prefix, id), k -> new SystemConfiguration(prefix, id));
     }
 
+    // 从内存中获取配置
     public InmemoryConfiguration getExternalConfig(String prefix, String id) {
         return externalConfigs.computeIfAbsent(toKey(prefix, id), k -> {
             InmemoryConfiguration configuration = new InmemoryConfiguration(prefix, id);
@@ -66,6 +67,7 @@ public class Environment {
         });
     }
 
+    // 从内存中获取配置
     public InmemoryConfiguration getAppExternalConfig(String prefix, String id) {
         return appExternalConfigs.computeIfAbsent(toKey(prefix, id), k -> {
             InmemoryConfiguration configuration = new InmemoryConfiguration(prefix, id);
@@ -114,10 +116,11 @@ public class Environment {
     public CompositeConfiguration getConfiguration(String prefix, String id) {
         CompositeConfiguration compositeConfiguration = new CompositeConfiguration();
         // Config center has the highest priority
-        compositeConfiguration.addConfiguration(this.getSystemConfig(prefix, id));
-        compositeConfiguration.addConfiguration(this.getAppExternalConfig(prefix, id));
-        compositeConfiguration.addConfiguration(this.getExternalConfig(prefix, id));
-        compositeConfiguration.addConfiguration(this.getPropertiesConfig(prefix, id));
+        // 系统的优先级最高
+        compositeConfiguration.addConfiguration(this.getSystemConfig(prefix, id)); // 系统配置项
+        compositeConfiguration.addConfiguration(this.getAppExternalConfig(prefix, id)); // 配置中心
+        compositeConfiguration.addConfiguration(this.getExternalConfig(prefix, id));  // 配置中心
+        compositeConfiguration.addConfiguration(this.getPropertiesConfig(prefix, id)); // dubbo.properties配置项/dubbo.properties.file
         return compositeConfiguration;
     }
 

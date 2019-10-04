@@ -167,8 +167,10 @@ public class RegistryProtocol implements Protocol {
 
     @Override
     public <T> Exporter<T> export(final Invoker<T> originInvoker) throws RpcException {
+        // 替换URL中的registry部分，如果设置了zookeeper就替换zookeeper 其实在构造URL的时候就加上了一段registry=zookeeper这儿是替换
         URL registryUrl = getRegistryUrl(originInvoker);
         // url to export locally
+        // 把url里面export后面一段拿出来，http://......
         URL providerUrl = getProviderUrl(originInvoker);
 
         // Subscribe the override data
@@ -180,22 +182,31 @@ public class RegistryProtocol implements Protocol {
         overrideListeners.put(overrideSubscribeUrl, overrideSubscribeListener);
 
         providerUrl = overrideUrlWithConfig(providerUrl, overrideSubscribeListener);
-        //export invoker
+        //export invoker 本地导入 其实就是启动服务。如果设置了tomcat就启动tomcat <dubbo:protocol name="http" server="tomcat">
+        // 如果是netty 就会去启动一个netty服务
         final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker, providerUrl);
 
         // url to registry
+        // 通过URL找到服务注册的类，如果是zookeeper就是ZookeeperRegistry
         final Registry registry = getRegistry(originInvoker);
+        // 2.7之前，url后面跟的参数比较多，所以2.7进行了优化，如果你想用简单版，就会把不必要的参数减去
         final URL registeredProviderUrl = getRegisteredProviderUrl(providerUrl, registryUrl);
         ProviderInvokerWrapper<T> providerInvokerWrapper = ProviderConsumerRegTable.registerProvider(originInvoker,
                 registryUrl, registeredProviderUrl);
         //to judge if we need to delay publish
         boolean register = registeredProviderUrl.getParameter("register", true);
         if (register) {
+            // 服务注册
+            // 1.其实就是把url注册到注册中心去，这儿的registry其实就是注册中心的意思
+            // 2.zk下，就是吧url生成临时节点到对应的节点之下的
+            // registryUrl是注册中心的url：zookeeper://.....
+            // registeredProviderUrl被注册的服务：http://......
             register(registryUrl, registeredProviderUrl);
             providerInvokerWrapper.setReg(true);
         }
 
         // Deprecated! Subscribe to override rules in 2.6.x or before.
+        // 绑定监听器，监听服务配置修改，服务运行期间，如果修改配置，监听修改，其实就是修改zk上节点保存的配置信息
         registry.subscribe(overrideSubscribeUrl, overrideSubscribeListener);
 
         exporter.setRegisterUrl(registeredProviderUrl);
@@ -217,6 +228,7 @@ public class RegistryProtocol implements Protocol {
 
         return (ExporterChangeableWrapper<T>) bounds.computeIfAbsent(key, s -> {
             Invoker<?> invokerDelegate = new InvokerDelegate<>(originInvoker, providerUrl);
+            // 这儿会调用protocol的wrapper类
             return new ExporterChangeableWrapper<>((Exporter<T>) protocol.export(invokerDelegate), originInvoker);
         });
     }

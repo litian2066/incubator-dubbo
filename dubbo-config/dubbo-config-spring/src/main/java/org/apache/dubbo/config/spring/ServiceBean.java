@@ -104,18 +104,22 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
         return service;
     }
 
+    // 重点：Spring有什么事件发送过来的时候，调用这个方法
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
         if (!isExported() && !isUnexported()) {
             if (logger.isInfoEnabled()) {
                 logger.info("The service ready on spring started. service: " + getInterface());
             }
+            // 入口方法
             export();
         }
     }
 
     @Override
     @SuppressWarnings({"unchecked", "deprecation"})
+    // 属性设置好了执行这个方法
+    //  设置serviceBean属于哪个provider，哪个module，哪个Application
     public void afterPropertiesSet() throws Exception {
         if (getProvider() == null) {
             Map<String, ProviderConfig> providerConfigMap = applicationContext == null ? null : BeanFactoryUtils.beansOfTypeIncludingAncestors(applicationContext, ProviderConfig.class, false, false);

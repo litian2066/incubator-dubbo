@@ -269,6 +269,10 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         checkApplication();
         checkRegistry();
         checkProtocol();
+        // 很多地方都用到这个方法，它主要去取外面的配置，根据优先级，然后更新bean的属性的值
+        // 所以refresh方法就是把dubbo的所有配置刷新了一遍
+        // 也就是说读取xml里面的配置的时候初始化了bean，有些初始化值，但是因为有外部配置的关系
+        // 所以这儿就是把优先级高的外部配置里对应的配置set进了bean里面
         this.refresh();
         checkMetadataReport();
 
@@ -283,11 +287,17 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
             }
         } else {
             try {
+                // 定义的接口实例化为class
                 interfaceClass = Class.forName(interfaceName, true, Thread.currentThread()
                         .getContextClassLoader());
             } catch (ClassNotFoundException e) {
                 throw new IllegalStateException(e.getMessage(), e);
             }
+            // 检查方法是否属于接口
+            // <dubbo:service>
+            //      <dubbo:method>
+            //      <dubbo:parameter>
+            // <dubbo:service>
             checkInterfaceAndMethods(interfaceClass, methods);
             checkRef();
             generic = Boolean.FALSE.toString();
@@ -306,6 +316,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                 throw new IllegalStateException("The local implementation class " + localClass.getName() + " not implement interface " + interfaceName);
             }
         }
+        // 应用服务存根
         if (stub != null) {
             if ("true".equals(stub)) {
                 stub = interfaceName + "Stub";
@@ -321,10 +332,23 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
             }
         }
         checkStubAndLocal(interfaceClass);
+        // mock检查
         checkMock(interfaceClass);
     }
 
     public synchronized void export() {
+        // 1.检查以及更新配置
+        // 因为配置存在的地方不止存在xml，
+        //  1.xml
+        //  2.-D 系统配置，启动参数
+        //  3.Dubbo.properties
+        //  4.配置中心
+        //    1.全局配置
+        //    2.针对某个应用的配置
+        // 所以既然有这么多地方，那么到底用哪个，所以dubbo要定义配置的优先级
+        // 更新规则：
+        //  1.子节点覆盖父节点
+        //  2.子节点取父节点的值
         checkAndUpdateSubConfigs();
 
         if (!shouldExport()) {
@@ -334,6 +358,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         if (shouldDelay()) {
             delayExportExecutor.schedule(this::doExport, delay, TimeUnit.MILLISECONDS);
         } else {
+            // 直接导出
             doExport();
         }
     }
@@ -372,6 +397,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         if (StringUtils.isEmpty(path)) {
             path = interfaceName;
         }
+        // 多个协议导出多个服务，针对每个协议导出服务，每个服务都注册到注册中心
         doExportUrls();
     }
 
@@ -409,21 +435,30 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void doExportUrls() {
+        // 构造URL
+        // 一个URL就代表一个注册中心，包括服务的地址以及它的配置
+        // registry://127.0.0.1/org.apache.dubbo.registry.RegistryService?application
+        // = xml-demo-provider&dubbo=2.0.2&pid=3397&registry=zookeeper....
         List<URL> registryURLs = loadRegistries(true);
         for (ProtocolConfig protocolConfig : protocols) {
             String pathKey = URL.buildKey(getContextPath(protocolConfig).map(p -> p + "/" + path).orElse(path), group, version);
             ProviderModel providerModel = new ProviderModel(pathKey, ref, interfaceClass);
             ApplicationModel.initProviderModel(pathKey, providerModel);
+            // 对单个协议进行导出，其实就是对每个协议进行注册
             doExportUrlsFor1Protocol(protocolConfig, registryURLs);
         }
     }
 
+    // 1.翻译成url
+    // 2.把url保存到zk上面
     private void doExportUrlsFor1Protocol(ProtocolConfig protocolConfig, List<URL> registryURLs) {
         String name = protocolConfig.getName();
+        // 默认Dubbo协议
         if (StringUtils.isEmpty(name)) {
             name = Constants.DUBBO;
         }
-
+        // 一层一层的往map里面put配置信息，比如applicationBean的或者providerBean的，但是相同的配置会
+        // 被之前refresh过的配置覆盖
         Map<String, String> map = new HashMap<String, String>();
         map.put(Constants.SIDE_KEY, Constants.PROVIDER_SIDE);
         appendRuntimeParameters(map);
@@ -431,7 +466,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         appendParameters(map, module);
         appendParameters(map, provider, Constants.DEFAULT_KEY);
         appendParameters(map, protocolConfig);
-        appendParameters(map, this);
+        appendParameters(map, this); // 覆盖，比如this里面有一个timeout 而provider里面有一个timeout，所以这儿会覆盖
         if (CollectionUtils.isNotEmpty(methods)) {
             for (MethodConfig method : methods) {
                 appendParameters(map, method, method.getName());
@@ -492,19 +527,23 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
             map.put(Constants.GENERIC_KEY, generic);
             map.put(Constants.METHODS_KEY, Constants.ANY_VALUE);
         } else {
+            // 取出版本号 dubbo2.7.2 -> 2.7.2
             String revision = Version.getVersion(interfaceClass, version);
             if (revision != null && revision.length() > 0) {
                 map.put(Constants.REVISION_KEY, revision);
             }
-
+            // 拿到暴露服务接口的方法
             String[] methods = Wrapper.getWrapper(interfaceClass).getMethodNames();
             if (methods.length == 0) {
                 logger.warn("No method found in service interface " + interfaceClass.getName());
                 map.put(Constants.METHODS_KEY, Constants.ANY_VALUE);
             } else {
+                // 给方法添加methodKey，构造URL上面会有
                 map.put(Constants.METHODS_KEY, StringUtils.join(new HashSet<String>(Arrays.asList(methods)), ","));
             }
         }
+        // 设置token保证服务安全，调用的时候需要从注册中心拿到token然后传给服务端，再进行一个验证，可以保证服务的安全
+        // 不然任何人都可以调用服务
         if (!ConfigUtils.isEmpty(token)) {
             if (ConfigUtils.isDefault(token)) {
                 map.put(Constants.TOKEN_KEY, UUID.randomUUID().toString());
@@ -515,6 +554,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         // export service
         String host = this.findConfigedHosts(protocolConfig, registryURLs, map);
         Integer port = this.findConfigedPorts(protocolConfig, name, map);
+        // 构造URL，其实就是构造服务
         URL url = new URL(name, host, port, getContextPath(protocolConfig).map(p -> p + "/" + path).orElse(path), map);
 
         if (ExtensionLoader.getExtensionLoader(ConfiguratorFactory.class)
@@ -525,11 +565,13 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
 
         String scope = url.getParameter(Constants.SCOPE_KEY);
         // don't export when none is configured
+        // 暴露服务 重要
         if (!Constants.SCOPE_NONE.equalsIgnoreCase(scope)) {
 
             // export to local if the config is not remote (export to remote only when config is remote)
+            // 如果scope不是scope——remote就暴露本地
             if (!Constants.SCOPE_REMOTE.equalsIgnoreCase(scope)) {
-                exportLocal(url);
+                exportLocal(url); // 如果是本地导出服务，就修改URL为ijvm协议 ijvm://.....
             }
             // export to remote if the config is not local (export to local only when config is local)
             if (!Constants.SCOPE_LOCAL.equalsIgnoreCase(scope)) {
@@ -560,9 +602,13 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                         exporters.add(exporter);
                     }
                 } else {
+                    // 构造执行者，其实就是将url后面加上&export=http:// ........ 然后再构造执行者
                     Invoker<?> invoker = proxyFactory.getInvoker(ref, (Class) interfaceClass, url);
                     DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);
-
+                    // protocol取得是接口Protocol.class的代理类，根据dubboSPI 这儿执行方法会从URL中获取参数对应的信息
+                    // 找到对应的实现类，然后去执行实现类里面的export方法
+                    // 比如url是registry://....开头的，这儿就会拿到registry的协议，然后找到实现类RegistryProtocol
+                    // 然后执行RegistryProtocol的export方法
                     Exporter<?> exporter = protocol.export(wrapperInvoker);
                     exporters.add(exporter);
                 }

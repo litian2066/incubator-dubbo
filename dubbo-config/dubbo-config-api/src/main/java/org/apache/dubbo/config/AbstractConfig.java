@@ -488,6 +488,7 @@ public abstract class AbstractConfig implements Serializable {
                 if (isMetaMethod(method)) {
                     String prop = calculateAttributeFromGetter(name);
                     String key;
+                    // 获取方法上面的@Parameter注解
                     Parameter parameter = method.getAnnotation(Parameter.class);
                     if (parameter != null && parameter.key().length() > 0 && parameter.useKeyAsProperty()) {
                         key = parameter.key();
@@ -539,11 +540,27 @@ public abstract class AbstractConfig implements Serializable {
      * TODO: Currently, only support overriding of properties explicitly defined in Config class, doesn't support
      * overriding of customized parameters stored in 'parameters'.
      */
+    // 它主要去取外面的配置，根据优先级，然后更新bean的属性的值，
+    // 比如xml里面写的是timeout = 500，但是外部配置是400 ，所以这儿会更新为400
     public void refresh() {
         try {
+            // 从外面拿到配置项的值，通过优先级获取
+            //      ProviderConfig, 属性默认值 = xml里面写的
+            //      getId() -> 对应 <dubbo:service id= "">
+            //      getPrefix() xml前缀拼上服务名。比如：dubbo.service.com.xxx.service
+            // 获取3种外部配置
+            // 1.System配置主要是通过System.getProperties获取
+            // 2.dubbo.properties配置，主要是去读取配置文件获取，但是如果System中有的话就用System的
+            // 3.读取配置中心的配置，这个就有点科幻了，其实在代码里面就是读取两个map的值
+            //   1.因为配置中心采用的是zookeeper，所以配置都存在znode里面，在前面的方法就把这些配置从配置中心拉取到了两个map里面
+            //   2.这儿只是读取，怎么从zookeeper获取的呢？
+            //      1.通过SPI的方式，拿到zookeeper的实现类，然后再构造节点信息，通过curator来获取，再dubbo-configcenter-zookeeper模块里面
+            //
             CompositeConfiguration compositeConfiguration = Environment.getInstance().getConfiguration(getPrefix(), getId());
             InmemoryConfiguration config = new InmemoryConfiguration(getPrefix(), getId());
+            // getMetaData()获取bean的初始化值，比如ApplicationConfig或者其他的
             config.addProperties(getMetaData());
+            // 确定config配置的优先级，也就是排第几个
             if (Environment.getInstance().isConfigCenterFirst()) {
                 // The sequence would be: SystemConfiguration -> AppExternalConfiguration -> ExternalConfiguration -> AbstractConfig -> PropertiesConfiguration
                 compositeConfiguration.addConfiguration(3, config);
@@ -551,14 +568,22 @@ public abstract class AbstractConfig implements Serializable {
                 // The sequence would be: SystemConfiguration -> AbstractConfig -> AppExternalConfiguration -> ExternalConfiguration -> PropertiesConfiguration
                 compositeConfiguration.addConfiguration(1, config);
             }
-
+            // 所以根据上面的判断，最后配置顺序为：
+            // 默认：system -> 配置中心APP的配置 -> 配置中心全局配置 -> bean初始化值 -> properties文件
+            // 或者 system ->  bean初始化值 -> 配置中心APP的配置 -> 配置中心全局配置  -> properties文件
             // loop methods, get override value and set the new value back to method
+            // getClass()获取类，比如ProviderConfig.class
+            // 这儿就是将外部项配置set进去
             Method[] methods = getClass().getMethods();
             for (Method method : methods) {
                 if (ClassHelper.isSetter(method)) {
                     try {
+                        // 根据优先级从外部配置的configList里面获取key对应的配置项
+                        // 上面的代码就是把外部配置以及内部bean的初始化值根据优先级放入configList里面
+                        // 结论就是system的最高优先级然后就是bean的初始化值，其次是配置中心最后是properties
                         String value = StringUtils.trim(compositeConfiguration.getString(extractPropertyName(getClass(), method)));
                         // isTypeMatch() is called to avoid duplicate and incorrect update, for example, we have two 'setGeneric' methods in ReferenceConfig.
+                        // 将外面配置项set进去
                         if (StringUtils.isNotEmpty(value) && ClassHelper.isTypeMatch(method.getParameterTypes()[0], value)) {
                             method.invoke(this, ClassHelper.convertPrimitive(method.getParameterTypes()[0], value));
                         }

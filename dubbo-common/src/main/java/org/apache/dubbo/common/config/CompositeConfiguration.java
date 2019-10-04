@@ -45,6 +45,7 @@ public class CompositeConfiguration implements Configuration {
     }
 
     public void addConfiguration(Configuration configuration) {
+        // configList是一个有序的list
         if (configList.contains(configuration)) {
             return;
         }
